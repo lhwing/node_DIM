@@ -1,0 +1,151 @@
+<html>
+  <head>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+  </head>
+  <body>
+    <script>
+    function nl2br (str) {
+      return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1'+ '<br>' +'$2');
+    }
+      function print_msg(msg){
+        var div = $('#text');
+        var max_height = div.prop("scrollHeight")-div.height();
+        var pos = div.scrollTop();
+        var set = false;
+        //if (pos == max_height) set = true;  //scroll for bottom
+        if (pos == 0) set = true;  //scroll for bottom
+
+        var text = 'at: '+(new Date(msg.date)).toLocaleString()
+                  +'<br>'+msg.name+' says: '+nl2br(msg.text);
+        div.html(text+'<hr>'+div.html());
+
+        if (!set)  div.scrollTop(div.scrollTop() - max_height
+                                +div.prop("scrollHeight")-div.height());
+        //else div.scrollTop(div.prop("scrollHeight")-div.height());
+      }
+
+      $('document').ready(function(){
+        var socket = io.connect();
+        socket.on('message', function(data) {
+          $('#text').html("");
+          data.message.forEach(function(e) {
+            print_msg(e);
+          });
+        });
+        socket.on('date', function(data) {
+          $('#date').text(new Date(data.date).toLocaleString());
+        });
+        socket.on('receive', function(data){
+          print_msg(data);
+        });
+        socket.on('setName',function(name){
+          $('input').val(name);
+        });
+
+
+        $('button:eq(0)').click(function(){
+          var name = $('input').val();
+          var text = $('textarea').val();
+          var date = new Date($('#date').text());
+          if (name == "") {
+            alert("you have to enter a name");
+            return;
+          }
+          if (text == "") return;
+          socket.emit('send',{name: name,text: text, date:date});
+          $('textarea').val('');
+        });
+        $('textarea').keyup( function(e){
+          if (e.which != 13) return;
+          var name = $('input').val();
+          var text = $('textarea').val();
+          var date = new Date($('#date').text());
+          if (name == "") {
+            alert("you have to enter a name");
+            return;
+          }
+          if (text == "") return;
+          socket.emit('send',{name: name,text: text, date:date});
+          $('textarea').val('');
+        });
+
+        var limit = 0;
+        var is_down = false;
+        var lx=0, ly=0;
+        $('canvas').on('mousedown',function(e){
+          is_down = true;
+          var c = this.getBoundingClientRect();
+          lx = e.clientX - c.left;
+          ly = e.clientY - c.top;
+          limit = $.now();
+        });
+        $('canvas').on('mouseup',function(e){
+          is_down = false;
+        });
+        var c = document.getElementById('myCanvas');
+        var myContext= ctx = c.getContext('2d');
+        ctx.fillStyle = "#FF0000";
+        ctx.fillRect(0,0,150,75);
+
+        //$('canvas').sketch();
+        var count = 0;
+        var xs=[];
+        var ys=[];
+        $('canvas').on('mousemove',function(e){
+          if (!is_down) return;
+          if ($.now()-limit < 30) return;
+          if ($.now()-limit > 1000) return is_down = false;
+
+          var c = this.getBoundingClientRect();
+          var x = e.clientX - c.left;
+          var y = e.clientY - c.top;
+          $("input").val(x + ' ' + y);
+          for (var i =0; i<1; i++){
+            for (var j=0; j<1; j++){
+            socket.emit('draw',{lx:lx+i, ly:ly+j, x: x+i,y: y+j } );
+          }
+          lx = x;
+          ly = y;
+          limit = $.now();
+        }
+
+          //  ctx.fillStyle = "#00FF00";
+          //  ctx.fillRect(x,y,5,5);
+        });
+        socket.on('gdraw', function(data){
+          // myContext.putImageData( id, data.x, data.y );
+          // ctx.fillStyle = "#00FF00";
+          // ctx.fillRect(data.x,data.y,3,3);
+          ctx.moveTo(data.lx, data.ly);
+          ctx.lineTo(data.x, data.y);
+          ctx.stroke();
+        });
+        socket.on('clear_draw',function(data){
+          ctx.beginPath();
+          ctx.clearRect(0, 0, c.width, c.height);
+        })
+      });
+
+    </script>
+    <div style="height:100%; overflow:hidden;">
+    <div style="width:100%">
+      <div id="date"></div>
+      Name:<br><input type="text" maxlength="20" ><br>
+      Text:<br><textarea rows="3" style="width:100%" maxlength="140"></textarea>
+      <button type="button">Send</button>
+      <button type="button" onclick="$('canvas')[0].style['z-index']=3;">draw</button>
+      <button type="button" onclick="$('canvas')[0].style['z-index']=1;">text</button>
+    </div>
+    <div style="position:relative;height:100%; width:100%;overflow:hidden;">
+      <div id="text" style="overflow-x:hidden; overflow-y:scroll;
+       height:100%; width:100%;
+       position:absolute; z-index:2;"></div>
+       <canvas id="myCanvas" width="1000" height="1000"
+       style="position:absolute;z-index:1"></canvas>
+    </div>
+    </div>
+  </body>
+</html>

@@ -124,16 +124,21 @@ serv_io.sockets.on('connection', function(socket) {
     }
     socket.emit('message',{message:history_msg});
     history_draw.forEach(function (e){socket.emit('gdraw',e);});
-
-    socket.emit('setName',cookies(socket.handshake.headers.cookie).name);
+    var name;
+    if ( name = cookies(socket.handshake.headers.cookie).name)
+      socket.emit('setName',name);
 
     });
-
+    
 });
 setInterval(function() {
   serv_io.sockets.emit('clear_draw');
   history_draw = [];
-}, 1000*10);
+}, 1000*60*3);
+var turnon=0;
+setInterval(function() {
+  console.log(turnon+++" minutes: "+history_msg.length+" "+history_draw.length);
+}, 1000*60);
 setInterval(function() {
   history_msg = []; //clear the pervious one evey hour
   max_id = 0;
@@ -154,7 +159,6 @@ setInterval(function() {
 serv_io.sockets.on('connection', function(socket) {
   setInterval(function() {
     serv_io.sockets.emit('date', {'date': new Date()});
-    socket.handshake.headers.cookie = "test=123";
   }, 1000);
 
 

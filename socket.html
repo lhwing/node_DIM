@@ -2,7 +2,7 @@
   <head>
     <script src="/socket.io/socket.io.js"></script>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
   </head>
   <body>
@@ -68,6 +68,7 @@
             return;
           }
           if (text == "") return;
+          if (text == "\n") return $('textarea').val('');
           socket.emit('send',{name: name,text: text, date:date});
           $('textarea').val('');
         });
@@ -87,8 +88,6 @@
         });
         var c = document.getElementById('myCanvas');
         var myContext= ctx = c.getContext('2d');
-        ctx.fillStyle = "#FF0000";
-        ctx.fillRect(0,0,150,75);
 
         //$('canvas').sketch();
         var count = 0;
